@@ -19,7 +19,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -42,6 +42,7 @@
             padding: 20px;
             margin-bottom: 30px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            position: relative; /* Suggestions list ke liye zaroori */
         }
 
         .search-box {
@@ -85,18 +86,51 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
+        .weather-cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
         .weather-card {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            padding: 30px;
+            padding: 25px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             backdrop-filter: blur(10px);
-            display: none;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .weather-card:hover {
+            transform: translateY(-5px);
         }
 
         .weather-card.show {
-            display: block;
             animation: slideUp 0.5s ease;
+        }
+
+        .remove-card {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ff7675;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .remove-card:hover {
+            background: #e84393;
+            transform: scale(1.1);
         }
 
         @keyframes slideUp {
@@ -118,7 +152,7 @@
         }
 
         .weather-info {
-            text-align: center;
+            text-align: left;
         }
 
         .city-name {
@@ -157,7 +191,7 @@
 
         .details-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
 
@@ -203,36 +237,77 @@
             margin-top: 15px;
         }
 
-        .recent-searches {
-            margin-top: 15px;
+        .suggestions-list {
+            position: absolute;
+            top: 75px; /* Adjusted position */
+            left: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 1000;
         }
 
-        .recent-title {
+        .suggestion-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s ease;
+        }
+
+        .suggestion-item:hover {
+            background: #f8f9fa;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-main {
+            font-weight: 600;
+            color: #2d3436;
+        }
+
+        .suggestion-sub {
+            font-size: 0.85rem;
+            color: #636e72;
+        }
+        
+        .popular-cities, .recent-searches {
+             margin-top: 15px;
+        }
+        
+        .popular-title, .recent-title {
             color: white;
             font-size: 0.9rem;
             margin-bottom: 10px;
-            opacity: 0.8;
+            opacity: 0.9;
+            font-weight: 600;
         }
 
-        .recent-items {
+        .popular-items, .recent-items {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
-        .recent-item {
+        .popular-item, .recent-item {
             background: rgba(255, 255, 255, 0.2);
             color: white;
             padding: 8px 15px;
             border-radius: 20px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .recent-item:hover {
+        .popular-item:hover, .recent-item:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
         }
 
         @media (max-width: 768px) {
@@ -240,17 +315,8 @@
                 grid-template-columns: 1fr;
                 gap: 20px;
             }
-
-            .temperature {
-                font-size: 3rem;
-            }
-
-            .search-box {
-                flex-direction: column;
-            }
-
-            .details-grid {
-                grid-template-columns: 1fr;
+            .suggestions-list {
+                top: 130px; 
             }
         }
     </style>
@@ -264,82 +330,66 @@
 
         <div class="search-container">
             <div class="search-box">
-                <input type="text" id="cityInput" placeholder="Enter city name (e.g., London, New York, Tokyo, Paris)">
+                <input type="text" id="cityInput" placeholder="Search any city..." autocomplete="off">
                 <button class="search-btn">🔍 Search</button>
             </div>
-
-            <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-bottom: 10px;">
-                💡 Try: London, New York, Tokyo, Paris, Mumbai, Sydney, or your local city
+            
+            <div id="suggestionsContainer"></div>
+            
+            <div class="popular-cities">
+                <div class="popular-title">🌍 Popular Cities Worldwide:</div>
+                <div class="popular-items" id="popularItems"></div>
             </div>
 
             <div class="recent-searches">
-                <div class="recent-title">Recent Searches:</div>
+                <div class="recent-title">📍 Recent Searches:</div>
                 <div class="recent-items" id="recentItems"></div>
             </div>
         </div>
 
-        <div class="weather-card" id="weatherCard">
-            <div class="weather-main">
-                <div class="weather-info">
-                    <div class="city-name" id="cityName"></div>
-                    <div class="temperature" id="temperature"></div>
-                    <div class="description" id="description"></div>
-                </div>
-                <div class="weather-icon">
-                    <div class="icon" id="weatherIcon"></div>
-                    <div id="feelsLike"></div>
-                </div>
+        <div class="weather-cards-container" id="weatherContainer">
             </div>
-
-            <div class="details-grid">
-                <div class="detail-item">
-                    <div class="detail-label">Humidity</div>
-                    <div class="detail-value" id="humidity"></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Wind Speed</div>
-                    <div class="detail-value" id="windSpeed"></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Pressure</div>
-                    <div class="detail-value" id="pressure"></div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Visibility</div>
-                    <div class="detail-value" id="visibility"></div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
-        const API_KEY = '2e723159e379b4cfde75fa6ae1b08314';
-        const API_URL = 'https://api.openweathermap.org/data/2.5/weather';
+        const API_KEY = '2e723159e379b4cfde75fa6ae1b08314'; 
+        let weatherCards = [];
+        let debounceTimeout; 
 
-        // Debug function to check if page is loaded properly
-        console.log('Weather Dashboard loaded successfully');
-        console.log('API URL:', API_URL);
-        console.log('API Key present:', API_KEY ? 'Yes' : 'No');
-
-        // Weather icon mapping
         const weatherIcons = {
-            '01d': '☀️', '01n': '🌙',
-            '02d': '⛅', '02n': '☁️',
-            '03d': '☁️', '03n': '☁️',
-            '04d': '☁️', '04n': '☁️',
-            '09d': '🌧️', '09n': '🌧️',
-            '10d': '🌦️', '10n': '🌧️',
-            '11d': '⛈️', '11n': '⛈️',
-            '13d': '❄️', '13n': '❄️',
-            '50d': '🌫️', '50n': '🌫️'
+            '01d': '☀️', '01n': '🌙', '02d': '⛅', '02n': '☁️', '03d': '☁️', 
+            '03n': '☁️', '04d': '☁️', '04n': '☁️', '09d': '🌧️', '09n': '🌧️',
+            '10d': '🌦️', '10n': '🌧️', '11d': '⛈️', '11n': '⛈️', '13d': '❄️',
+            '13n': '❄️', '50d': '🌫️', '50n': '🌫️'
         };
 
-        // Load recent searches from localStorage
+        const POPULAR_CITIES = [
+            { name: 'Mumbai', flag: '🇮🇳' }, { name: 'Delhi', flag: '🇮🇳' }, { name: 'Bangalore', flag: '🇮🇳' }, 
+            { name: 'Kolkata', flag: '🇮🇳' }, { name: 'London', flag: '🇬🇧' }, { name: 'New York', flag: '🇺🇸' }, 
+            { name: 'Tokyo', flag: '🇯🇵' }, { name: 'Paris', flag: '🇫🇷' }, { name: 'Sydney', flag: '🇦🇺' }, 
+            { name: 'Dubai', flag: '🇦🇪' }
+        ];
+
+        
+        function loadPopularCities() {
+            const popularItems = document.getElementById('popularItems');
+            popularItems.innerHTML = '';
+            POPULAR_CITIES.forEach(city => {
+                const item = document.createElement('div');
+                item.className = 'popular-item';
+                item.innerHTML = `${city.flag} ${city.name}`;
+                item.onclick = () => {
+                    document.getElementById('cityInput').value = city.name;
+                    getWeather();
+                };
+                popularItems.appendChild(item);
+            });
+        }
+
         function loadRecentSearches() {
             const recent = JSON.parse(localStorage.getItem('recentSearches') || '[]');
             const recentItems = document.getElementById('recentItems');
             recentItems.innerHTML = '';
-
             recent.slice(0, 5).forEach(city => {
                 const item = document.createElement('div');
                 item.className = 'recent-item';
@@ -351,84 +401,139 @@
                 recentItems.appendChild(item);
             });
         }
+        
+        
+        async function showSuggestions(query) {
+            const suggestionsContainer = document.getElementById('suggestionsContainer');
+            if (!query || query.length < 3) {
+                suggestionsContainer.innerHTML = '';
+                return;
+            }
 
-        // Save search to recent searches
+            try {
+               
+                const url = `https://api.openweathermap.org/geo/1.0/direct?q=${query}&limit=5&appid=${API_KEY}`;
+                const response = await fetch(url);
+                if (!response.ok) return; 
+
+                const suggestions = await response.json();
+                
+                suggestionsContainer.innerHTML = ''; 
+                if (suggestions.length === 0) return;
+
+                const suggestionsList = document.createElement('div');
+                suggestionsList.className = 'suggestions-list';
+
+                suggestions.forEach(city => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item';
+                    
+                    const state = city.state ? `, ${city.state}` : '';
+                    
+                    item.innerHTML = `
+                        <div class="suggestion-main">${city.name}</div>
+                        <div class="suggestion-sub">${state}, ${city.country}</div>
+                    `;
+
+                    
+                    item.onclick = () => {
+                        document.getElementById('cityInput').value = city.name;
+                        suggestionsContainer.innerHTML = ''; 
+                        getWeather();
+                    };
+
+                    suggestionsList.appendChild(item);
+                });
+
+                suggestionsContainer.appendChild(suggestionsList);
+
+            } catch (error) {
+                console.error("Suggestion fetch error:", error);
+                suggestionsContainer.innerHTML = ''; // एरर पर भी सजेशन बॉक्स छिपाएं
+            }
+        }
+
         function saveRecentSearch(city) {
             let recent = JSON.parse(localStorage.getItem('recentSearches') || '[]');
             recent = recent.filter(item => item.toLowerCase() !== city.toLowerCase());
             recent.unshift(city);
-            recent = recent.slice(0, 10);
-            localStorage.setItem('recentSearches', JSON.stringify(recent));
+            localStorage.setItem('recentSearches', JSON.stringify(recent.slice(0, 10)));
             loadRecentSearches();
         }
 
         async function getWeather() {
-            console.log('getWeather function called');
             const cityInput = document.getElementById('cityInput');
             const city = cityInput.value.trim();
-            const weatherCard = document.getElementById('weatherCard');
-
-            console.log('Searching for city:', city);
-
+            
             if (!city) {
                 showError('Please enter a city name');
                 return;
             }
 
-            // Show loading
-            weatherCard.innerHTML = '<div class="loading">🔄 Loading weather data...</div>';
-            weatherCard.classList.add('show');
+            if (weatherCards.find(card => card.name.toLowerCase() === city.toLowerCase())) {
+                showError(`Weather for "${city}" is already displayed`);
+                return;
+            }
+            
+            const weatherContainer = document.getElementById('weatherContainer');
+            const loadingCard = createLoadingCard(city);
+            weatherContainer.prepend(loadingCard);
 
             try {
-                const url = `${API_URL}?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`;
-                console.log('Fetching URL:', url);
-
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                    }
-                });
-
-                console.log('Response status:', response.status);
-                console.log('Response ok:', response.ok);
+                const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`;
+                const response = await fetch(url);
 
                 if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error(`City "${city}" not found. Please check the spelling and try again.`);
-                    } else if (response.status === 401) {
-                        throw new Error('API key error. Please check the API configuration.');
-                    } else {
-                        throw new Error(`Error ${response.status}: Unable to fetch weather data.`);
-                    }
+                    if (response.status === 404) throw new Error(`City "${city}" not found.`);
+                    if (response.status === 401) throw new Error('API key error.');
+                    throw new Error(`Error ${response.status}`);
                 }
-
+                
                 const data = await response.json();
-                console.log('Weather data received:', data);
-
-                // Additional check for valid data
-                if (!data || !data.main || !data.weather) {
-                    throw new Error('Invalid weather data received');
-                }
-
-                displayWeather(data);
+                weatherContainer.removeChild(loadingCard);
+                addWeatherCard(data);
                 saveRecentSearch(data.name);
+                cityInput.value = '';
 
             } catch (error) {
-                console.error('Weather API Error:', error);
-                if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                    showError('Network error. Please check your internet connection.');
-                } else {
-                    showError(error.message);
+                if (loadingCard.parentNode) {
+                   loadingCard.remove();
                 }
+                showError(error.message);
             }
         }
+        
+        function addWeatherCard(data) {
+             if (!data || !data.main || !data.weather) {
+                showError('Invalid weather data received');
+                return;
+            }
+            
+            if (weatherCards.some(card => card.name.toLowerCase() === data.name.toLowerCase())) {
+                return;
+            }
+            
+            const weatherContainer = document.getElementById('weatherContainer');
+            const weatherCard = createWeatherCard(data);
+            weatherContainer.prepend(weatherCard);
 
-        function displayWeather(data) {
-            const weatherCard = document.getElementById('weatherCard');
+            weatherCards.push({ name: data.name, element: weatherCard });
+        }
+
+        function createLoadingCard(cityName) {
+            const card = document.createElement('div');
+            card.className = 'weather-card show';
+            card.innerHTML = `<div class="loading">🔄 Loading weather for ${cityName}...</div>`;
+            return card;
+        }
+
+        function createWeatherCard(data) {
             const icon = weatherIcons[data.weather[0].icon] || '🌤️';
+            const card = document.createElement('div');
+            card.className = 'weather-card show';
 
-            weatherCard.innerHTML = `
+            card.innerHTML = `
+                <button class="remove-card" onclick="removeWeatherCard('${data.name}')" title="Remove card">×</button>
                 <div class="weather-main">
                     <div class="weather-info">
                         <div class="city-name">${data.name}, ${data.sys.country}</div>
@@ -440,7 +545,6 @@
                         <div>Feels like ${Math.round(data.main.feels_like)}°C</div>
                     </div>
                 </div>
-
                 <div class="details-grid">
                     <div class="detail-item">
                         <div class="detail-label">Humidity</div>
@@ -458,61 +562,80 @@
                         <div class="detail-label">Visibility</div>
                         <div class="detail-value">${(data.visibility / 1000).toFixed(1)} km</div>
                     </div>
-                </div>
-            `;
+                </div>`;
+            return card;
+        }
 
-            weatherCard.classList.add('show');
+        function removeWeatherCard(cityName) {
+            const cardIndex = weatherCards.findIndex(card => card.name === cityName);
+            if (cardIndex !== -1) {
+                weatherCards[cardIndex].element.remove();
+                weatherCards.splice(cardIndex, 1);
+            }
         }
 
         function showError(message) {
-            const weatherCard = document.getElementById('weatherCard');
-            weatherCard.innerHTML = `<div class="error">❌ ${message}</div>`;
-            weatherCard.classList.add('show');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.innerHTML = `❌ ${message}`;
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '20px';
+            errorDiv.style.right = '20px';
+            errorDiv.style.zIndex = '9999';
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 4000);
         }
 
-        // Event listeners
+        async function loadInitialIndianCities() {
+            const indianCityIds = '1273294,1275339,1277333,1275004,1264527,1269843';
+            const url = `https://api.openweathermap.org/data/2.5/group?id=${indianCityIds}&appid=${API_KEY}&units=metric`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Could not load initial cities.');
+                const data = await response.json();
+                data.list.forEach(cityData => addWeatherCard(cityData));
+            } catch (error) {
+                console.error("Initial cities load error:", error);
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, setting up event listeners');
-
             const cityInput = document.getElementById('cityInput');
             const searchBtn = document.querySelector('.search-btn');
+            
+            
+            cityInput.addEventListener('input', (e) => {
+                clearTimeout(debounceTimeout); 
+                const query = e.target.value;
+                
+                debounceTimeout = setTimeout(() => {
+                    showSuggestions(query);
+                }, 300); 
+            });
 
-            // Enter key event
-            cityInput.addEventListener('keypress', function(e) {
+            
+            document.addEventListener('click', (e) => {
+                if (!document.querySelector('.search-container').contains(e.target)) {
+                     document.getElementById('suggestionsContainer').innerHTML = '';
+                }
+            });
+
+            searchBtn.addEventListener('click', () => {
+                document.getElementById('suggestionsContainer').innerHTML = '';
+                getWeather();
+            });
+            cityInput.addEventListener('keypress', e => {
                 if (e.key === 'Enter') {
-                    console.log('Enter key pressed');
+                    document.getElementById('suggestionsContainer').innerHTML = '';
                     getWeather();
                 }
             });
 
-            // Button click event
-            searchBtn.addEventListener('click', function() {
-                console.log('Search button clicked');
-                getWeather();
-            });
-
-            console.log('Event listeners set up successfully');
+            // Initialize page
+            loadPopularCities();
+            loadRecentSearches();
+            loadInitialIndianCities();
         });
-
-        // Initialize
-        loadRecentSearches();
-
-        // Get user's location weather on load
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(async (position) => {
-                try {
-                    const { latitude, longitude } = position.coords;
-                    const response = await fetch(`${API_URL}?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        document.getElementById('cityInput').value = data.name;
-                        displayWeather(data);
-                    }
-                } catch (error) {
-                    console.log('Could not get location weather');
-                }
-            });
-        }
     </script>
 </body>
 </html>
